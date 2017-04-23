@@ -107,19 +107,20 @@ function Vehicle(ctx, start, end,  geom, vert) {
   this.h = 50;
   this.pathCoord = []; 
   this.grp =  new THREE.Group();
-  this.lineGeom = new THREE.BufferGeometry();
+  this.pointGeom = new THREE.BufferGeometry();
   this.MAX_POINTS = 100000;
 
-  this.lineGeom.addAttribute( 'position', new THREE.BufferAttribute(  new Float32Array( this.MAX_POINTS * 3 ), 3 ) );
+  this.pointGeom.addAttribute( 'position', new THREE.BufferAttribute(  new Float32Array( this.MAX_POINTS * 3 ), 3 ) );
   // drawcalls
   this.drawCount = 2; // draw the first 2 points, only
-  this.lineGeom.setDrawRange( 0, this.drawCount );
+  this.pointGeom.setDrawRange( 0, this.drawCount );
   // material
-  this.material = new THREE.LineBasicMaterial( { color: "yellow", linewidth: 2 } );
+  this.material = new THREE.PointsMaterial( { color: "#ffc55c" , size:15} );
 
   // line
-  this.line = new THREE.Line( this.lineGeom,  this.material );
-  this.ctx.add( this.line );
+  this.point = new THREE.Points( this.pointGeom,  this.material );
+   this.point.frustumCulled = false;
+  this.ctx.add( this.point );
   //this.line.geometry.attributes.position.needsUpdate = true; 
 
   this.ctx.add(this.grp);
@@ -142,12 +143,12 @@ Vehicle.prototype.body = function () {
 
   }
 
-  var starsMaterial = new THREE.PointsMaterial( { color: "red", size:5 } )
+  var starsMaterial = new THREE.PointsMaterial( { color: "red", size:10 } )
 
   var starField = new THREE.Points( starsGeometry, starsMaterial );
   starField.name="star";
   starField.position.copy(new THREE.Vector3(this.p1.x,this.p1.y,this.p1.z));
-  starField.rotation.x = 900;
+  starField.rotation.x = 45;
   this.vech = starField;
   this.ctx.add( starField );
 }
@@ -180,7 +181,7 @@ Vehicle.prototype.clearShape = function (x, y, fillColor, strokeColor) {
 
 Vehicle.prototype.run = function (path) {
   if (!path.length) {
-    var pos = this.line.geometry.attributes.position.array;
+    var pos = this.point.geometry.attributes.position.array;
     this.drawPath (this.pathCoord.shift(), pos);
     return;
   }
@@ -212,7 +213,7 @@ Vehicle.prototype.run = function (path) {
 Vehicle.prototype.drawPath = function (prev, pos) {
     if (!this.pathCoord.length){
       this.vech.position.copy(new THREE.Vector3(prev.x, prev.y+10, prev.z));
-      plight.position.copy(this.vech.position);
+
       end();
       return;
     }
@@ -222,19 +223,13 @@ Vehicle.prototype.drawPath = function (prev, pos) {
     let curr = this.pathCoord.shift();
     self.addPoint(self, pos, curr);
 
+    self.point.geometry.setDrawRange( 0, self.drawCount );
+    self.updatePoint(self, pos, prev);
+    self.vech.position.copy(new THREE.Vector3(prev.x, prev.y+10, prev.z));
+
     render(function () {
-           setTimeout(function(){
-              // line.vertices.push(new THREE.Vector3(curr.x, curr.y, curr.z));
-              // var lineMesh = new THREE.Line(line, new THREE.LineBasicMaterial({color:"yellow"}));
-              // self.grp.add(lineMesh);
 
-              self.line.geometry.setDrawRange( 0, self.drawCount );
-              self.updatePoint(self, pos, prev);
-
-              self.vech.position.copy(new THREE.Vector3(prev.x, prev.y+10, prev.z));
-              plight.position.copy(self.vech.position);
-           }, 10);
-           self.drawPath(curr, pos);
+      self.drawPath(curr, pos);
     });
 }
 
@@ -252,7 +247,7 @@ Vehicle.prototype.updatePoint = function(self, arr, pos) {
     arr[self.drawCount*3-3] = pos.x;
     arr[self.drawCount*3-2] = pos.y;
     arr[self.drawCount*3-1] = pos.z;
-    self.line.geometry.attributes.position.needsUpdate = true;
+    self.point.geometry.attributes.position.needsUpdate = true;
 }
 Vehicle.prototype.rotateCenter = function(angle, pt1) {
   var mid = midpoint (pt1, [pt1[0]+ this.w, pt1[1]+ this.h]);
